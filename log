@@ -1,0 +1,62 @@
+Created model with fresh parameters.
+Reading model parameters from /Users/baihai/projects/translate/train_dir/translate.ckpt-2
+2017-09-25 01:07:31.658627: W tensorflow/core/framework/op_kernel.cc:1192] Not found: Key model_1/Variable_1 not found in checkpoint
+2017-09-25 01:07:31.662154: W tensorflow/core/framework/op_kernel.cc:1192] Not found: Key model_1/Variable not found in checkpoint
+Traceback (most recent call last):
+  File "/Users/baihai/projects/translate/translate.py", line 392, in <module>
+    tf.app.run()
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/platform/app.py", line 48, in run
+    _sys.exit(main(_sys.argv[:1] + flags_passthrough))
+  File "/Users/baihai/projects/translate/translate.py", line 389, in main
+    train()
+  File "/Users/baihai/projects/translate/translate.py", line 233, in train
+    model = create_model(sess, buckets, True, False)
+  File "/Users/baihai/projects/translate/translate.py", line 161, in create_model
+    model.saver.restore(session, ckpt.model_checkpoint_path)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 1560, in restore
+    {self.saver_def.filename_tensor_name: save_path})
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 895, in run
+    run_metadata_ptr)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 1124, in _run
+    feed_dict_tensor, options, run_metadata)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 1321, in _do_run
+    options, run_metadata)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 1340, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.NotFoundError: Key model_1/Variable_1 not found in checkpoint
+	 [[Node: model_1/save/RestoreV2_39 = RestoreV2[dtypes=[DT_INT32], _device="/job:localhost/replica:0/task:0/cpu:0"](_arg_model_1/save/Const_0_0, model_1/save/RestoreV2_39/tensor_names, model_1/save/RestoreV2_39/shape_and_slices)]]
+
+Caused by op u'model_1/save/RestoreV2_39', defined at:
+  File "/Users/baihai/projects/translate/translate.py", line 392, in <module>
+    tf.app.run()
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/platform/app.py", line 48, in run
+    _sys.exit(main(_sys.argv[:1] + flags_passthrough))
+  File "/Users/baihai/projects/translate/translate.py", line 389, in main
+    train()
+  File "/Users/baihai/projects/translate/translate.py", line 233, in train
+    model = create_model(sess, buckets, True, False)
+  File "/Users/baihai/projects/translate/translate.py", line 157, in create_model
+    dtype=dtype)
+  File "/Users/baihai/projects/translate/seq2seq_model.py", line 196, in __init__
+    self.saver = tf.train.Saver(tf.global_variables())
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 1140, in __init__
+    self.build()
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 1172, in build
+    filename=self._filename)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 688, in build
+    restore_sequentially, reshape)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 407, in _AddRestoreOps
+    tensors = self.restore_op(filename_tensor, saveable, preferred_shard)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 247, in restore_op
+    [spec.tensor.dtype])[0])
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/ops/gen_io_ops.py", line 663, in restore_v2
+    dtypes=dtypes, name=name)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/framework/op_def_library.py", line 767, in apply_op
+    op_def=op_def)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 2630, in create_op
+    original_op=self._default_original_op, op_def=op_def)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 1204, in __init__
+    self._traceback = self._graph._extract_stack()  # pylint: disable=protected-access
+
+NotFoundError (see above for traceback): Key model_1/Variable_1 not found in checkpoint
+	 [[Node: model_1/save/RestoreV2_39 = RestoreV2[dtypes=[DT_INT32], _device="/job:localhost/replica:0/task:0/cpu:0"](_arg_model_1/save/Const_0_0, model_1/save/RestoreV2_39/tensor_names, model_1/save/RestoreV2_39/shape_and_slices)]]
