@@ -26,6 +26,8 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 import data_utils
+# from translate import _buckets as buckets
+buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
 
 
 class Seq2SeqModel(object):
@@ -46,7 +48,7 @@ class Seq2SeqModel(object):
   def __init__(self,
                source_vocab_size,
                target_vocab_size,
-               buckets,
+               # buckets,
                size,
                num_layers,
                max_gradient_norm,
@@ -82,7 +84,7 @@ class Seq2SeqModel(object):
     """
     self.source_vocab_size = source_vocab_size
     self.target_vocab_size = target_vocab_size
-    self.buckets = buckets
+    # self.buckets = buckets
     self.batch_size = batch_size
     self.learning_rate = tf.Variable(
         float(learning_rate), trainable=False, dtype=dtype)
@@ -118,18 +120,28 @@ class Seq2SeqModel(object):
             dtype)
       softmax_loss_function = sampled_loss
 
-    # Create the internal multi-layer cell for our RNN.
-    def single_cell():
-      return tf.contrib.rnn.GRUCell(size)
-    if use_lstm:
-      def single_cell():
-        return tf.contrib.rnn.BasicLSTMCell(size)
-    cell = single_cell()
-    if num_layers > 1:
-      cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
+    # # Create the internal multi-layer cell for our RNN.
+    # def single_cell():
+    #   return tf.contrib.rnn.GRUCell(size, reuse=tf.get_variable_scope().reuse)
+    # if use_lstm:
+    #   def single_cell():
+    #     return tf.contrib.rnn.BasicLSTMCell(size, reuse=tf.get_variable_scope().reuse)
+    # cell = single_cell()
+    # if num_layers > 1:
+    #   cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
 
     # The seq2seq function: we use embedding for the input and attention.
     def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
+      # Create the internal multi-layer cell for our RNN.
+      def single_cell():
+        return tf.contrib.rnn.GRUCell(size, reuse=tf.get_variable_scope().reuse)
+
+      if use_lstm:
+        def single_cell():
+            return tf.contrib.rnn.BasicLSTMCell(size, reuse=tf.get_variable_scope().reuse)
+      cell = single_cell()
+      if num_layers > 1:
+        cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
       return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
           encoder_inputs,
           decoder_inputs,
@@ -194,10 +206,10 @@ class Seq2SeqModel(object):
 
     self.saver = tf.train.Saver(tf.global_variables())
 
-  # def step(self, session, encoder_inputs, decoder_inputs, target_weights,
-  #          bucket_id, forward_only):
   def step(self, session, encoder_inputs, decoder_inputs, target_weights,
-            forward_only):
+           bucket_id, forward_only):
+  # def step(self, session, encoder_inputs, decoder_inputs, target_weights,
+  #           forward_only):
     """Run a step of the model feeding the given inputs.
 
     Args:
@@ -217,8 +229,8 @@ class Seq2SeqModel(object):
         target_weights disagrees with bucket size for the specified bucket_id.
     """
     # Check if the sizes match.
-    # encoder_size, decoder_size = self.buckets[bucket_id]
-    encoder_size, decoder_size = self.buckets[0]
+    encoder_size, decoder_size = buckets[bucket_id]
+    # encoder_size, decoder_size = self.buckets[0]
     if len(encoder_inputs) != encoder_size:
       raise ValueError("Encoder length must be equal to the one in bucket,"
                        " %d != %d." % (len(encoder_inputs), encoder_size))
@@ -242,22 +254,22 @@ class Seq2SeqModel(object):
     input_feed[last_target] = np.zeros([self.batch_size], dtype=np.int32)
 
     # Output feed: depends on whether we do a backward step or not.
-    # if not forward_only:
-    #   output_feed = [self.updates[bucket_id],  # Update Op that does SGD.
-    #                  self.gradient_norms[bucket_id],  # Gradient norm.
-    #                  self.losses[bucket_id]]  # Loss for this batch.
-    # else:
-    #   output_feed = [self.losses[bucket_id]]  # Loss for this batch.
-    #   for l in xrange(decoder_size):  # Output logits.
-    #     output_feed.append(self.outputs[bucket_id][l])
     if not forward_only:
-      output_feed = [self.updates[0],  # Update Op that does SGD.
-                     self.gradient_norms[0],  # Gradient norm.
-                     self.losses[0]]  # Loss for this batch.
+      output_feed = [self.updates[bucket_id],  # Update Op that does SGD.
+                     self.gradient_norms[bucket_id],  # Gradient norm.
+                     self.losses[bucket_id]]  # Loss for this batch.
     else:
-      output_feed = [self.losses[0]]  # Loss for this batch.
+      output_feed = [self.losses[bucket_id]]  # Loss for this batch.
       for l in xrange(decoder_size):  # Output logits.
-        output_feed.append(self.outputs[0][l])
+        output_feed.append(self.outputs[bucket_id][l])
+    # if not forward_only:
+    #   output_feed = [self.updates[0],  # Update Op that does SGD.
+    #                  self.gradient_norms[0],  # Gradient norm.
+    #                  self.losses[0]]  # Loss for this batch.
+    # else:
+    #   output_feed = [self.losses[0]]  # Loss for this batch.
+    #   for l in xrange(decoder_size):  # Output logits.
+    #     output_feed.append(self.outputs[0][l])
 
     outputs = session.run(output_feed, input_feed)
     if not forward_only:
@@ -265,8 +277,8 @@ class Seq2SeqModel(object):
     else:
       return None, outputs[0], outputs[1:]  # No gradient norm, loss, outputs.
 
-  # def get_batch(self, data, bucket_id):
-  def get_batch(self, data):
+  def get_batch(self, data, bucket_id):
+  # def get_batch(self, data):
     """Get a random batch of data from the specified bucket, prepare for step.
 
     To feed data in step(..) it must be a list of batch-major vectors, while
@@ -284,22 +296,22 @@ class Seq2SeqModel(object):
 
 data:                                                                   bukets:
 [                                                                           [
-[([source word list], [target word list]), ...],      bucket[0]             (source_size, target_size),
-[([source word list], [target word list]), ...],      bucket[1]             (source_size, target_size),
-[([source word list], [target word list]), ...],      bucket[2]             (source_size, target_size),
+[([source word list], [target word list]), ...],      buckets[0]             (source_size, target_size),
+[([source word list], [target word list]), ...],      buckets[1]             (source_size, target_size),
+[([source word list], [target word list]), ...],      buckets[2]             (source_size, target_size),
 ...                                                                         ...
-]
+]                                                                           ]
 
     """
-    # encoder_size, decoder_size = self.buckets[bucket_id]
-    encoder_size, decoder_size = self.buckets[0]
+    encoder_size, decoder_size = buckets[bucket_id]
+    # encoder_size, decoder_size = self.buckets[0]
     encoder_inputs, decoder_inputs = [], []
 
     # Get a random batch of encoder and decoder inputs from data,
     # pad them if needed, reverse encoder inputs and add GO to decoder.
     for _ in xrange(self.batch_size):
-      # encoder_input, decoder_input = random.choice(data[bucket_id])
-      encoder_input, decoder_input = random.choice(data)
+      encoder_input, decoder_input = random.choice(data[bucket_id])
+      # encoder_input, decoder_input = random.choice(data)
 
       # Encoder inputs are padded and then reversed.
       encoder_pad = [data_utils.PAD_ID] * (encoder_size - len(encoder_input))
@@ -313,13 +325,13 @@ data:                                                                   bukets:
     # Now we create batch-major vectors from the data selected above.
     batch_encoder_inputs, batch_decoder_inputs, batch_weights = [], [], []
 
-    # Batch encoder inputs are just re-indexed encoder_inputs.
+    # Batch_encoder_inputs are just re-indexed encoder_inputs.
     for length_idx in xrange(encoder_size):
       batch_encoder_inputs.append(
           np.array([encoder_inputs[batch_idx][length_idx]
                     for batch_idx in xrange(self.batch_size)], dtype=np.int32))
 
-    # Batch decoder inputs are re-indexed decoder_inputs, we create weights.
+    # Batch_decoder_inputs are re-indexed decoder_inputs, we create weights.
     for length_idx in xrange(decoder_size):
       batch_decoder_inputs.append(
           np.array([decoder_inputs[batch_idx][length_idx]

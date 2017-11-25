@@ -320,3 +320,10 @@ def prepare_data(data_dir, from_train_path, to_train_path, from_dev_path, to_dev
   return (from_train_ids_path, to_train_ids_path,
           from_dev_ids_path, to_dev_ids_path,
           from_vocab_path, to_vocab_path)
+
+if(__name__ == "__main__"):
+
+  get_wmt_enfr_train_set("/Users/ocean/projects/translate/data")
+  get_wmt_enfr_dev_set("/Users/ocean/projects/translate/data")
+
+  pass
