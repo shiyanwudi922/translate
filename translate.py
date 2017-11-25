@@ -139,29 +139,30 @@ data_set:                                                                   buke
     return data_set
 
 
-def create_model(session, buckets, forward_only):
+def create_model(session, buckets, reuse, forward_only):
     """Create translation model and initialize or load parameters in session."""
-    dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
-    model = seq2seq_model.Seq2SeqModel(
-        FLAGS.from_vocab_size,
-        FLAGS.to_vocab_size,
-        buckets,
-        FLAGS.size,
-        FLAGS.num_layers,
-        FLAGS.max_gradient_norm,
-        FLAGS.batch_size,
-        FLAGS.learning_rate,
-        FLAGS.learning_rate_decay_factor,
-        forward_only=forward_only,
-        dtype=dtype)
-    ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
-    if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
-        print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
-        model.saver.restore(session, ckpt.model_checkpoint_path)
-    else:
-        print("Created model with fresh parameters.")
-        session.run(tf.global_variables_initializer())
-    return model
+    with tf.variable_scope("model", reuse=reuse):
+        dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
+        model = seq2seq_model.Seq2SeqModel(
+            FLAGS.from_vocab_size,
+            FLAGS.to_vocab_size,
+            buckets,
+            FLAGS.size,
+            FLAGS.num_layers,
+            FLAGS.max_gradient_norm,
+            FLAGS.batch_size,
+            FLAGS.learning_rate,
+            FLAGS.learning_rate_decay_factor,
+            forward_only=forward_only,
+            dtype=dtype)
+        ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+        if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
+            print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
+            model.saver.restore(session, ckpt.model_checkpoint_path)
+        else:
+            print("Created model with fresh parameters.")
+            session.run(tf.global_variables_initializer())
+        return model
 
 # steps_per_log, steps_per_checkpoint, steps_per_eval, max_train_steps
 def train():
@@ -226,7 +227,10 @@ def train():
             data = train_set[bucket_id]
 
             # Get a batch and make a step.
-            model = create_model(sess, buckets, False)
+            if current_step == 0:
+                model = create_model(sess, buckets, False, False)
+            else:
+                model = create_model(sess, buckets, True, False)
             for i in xrange(FLAGS.steps_per_bucket):
                 start_time = time.time()
                 encoder_inputs, decoder_inputs, target_weights = model.get_batch(data)
