@@ -27,7 +27,7 @@ import tensorflow as tf
 
 import data_utils
 # from translate import _buckets as buckets
-buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
+# buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
 
 
 class Seq2SeqModel(object):
@@ -48,7 +48,7 @@ class Seq2SeqModel(object):
   def __init__(self,
                source_vocab_size,
                target_vocab_size,
-               # buckets,
+               buckets,
                size,
                num_layers,
                max_gradient_norm,
@@ -84,7 +84,7 @@ class Seq2SeqModel(object):
     """
     self.source_vocab_size = source_vocab_size
     self.target_vocab_size = target_vocab_size
-    # self.buckets = buckets
+    self.buckets = buckets
     self.batch_size = batch_size
     self.learning_rate = tf.Variable(
         float(learning_rate), trainable=False, dtype=dtype)
@@ -122,23 +122,21 @@ class Seq2SeqModel(object):
 
     # # Create the internal multi-layer cell for our RNN.
     # def single_cell():
-    #   return tf.contrib.rnn.GRUCell(size, reuse=tf.get_variable_scope().reuse)
+    #   return tf.contrib.rnn.GRUCell(size)
     # if use_lstm:
     #   def single_cell():
-    #     return tf.contrib.rnn.BasicLSTMCell(size, reuse=tf.get_variable_scope().reuse)
+    #     return tf.contrib.rnn.BasicLSTMCell(size)
     # cell = single_cell()
     # if num_layers > 1:
     #   cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
 
     # The seq2seq function: we use embedding for the input and attention.
     def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
-      # Create the internal multi-layer cell for our RNN.
       def single_cell():
-        return tf.contrib.rnn.GRUCell(size, reuse=tf.get_variable_scope().reuse)
-
+        return tf.contrib.rnn.GRUCell(size)
       if use_lstm:
         def single_cell():
-            return tf.contrib.rnn.BasicLSTMCell(size, reuse=tf.get_variable_scope().reuse)
+          return tf.contrib.rnn.BasicLSTMCell(size)
       cell = single_cell()
       if num_layers > 1:
         cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
@@ -230,7 +228,7 @@ class Seq2SeqModel(object):
         target_weights disagrees with bucket size for the specified bucket_id.
     """
     # Check if the sizes match.
-    encoder_size, decoder_size = buckets[bucket_id]
+    encoder_size, decoder_size = self.buckets[bucket_id]
     # encoder_size, decoder_size = self.buckets[0]
     if len(encoder_inputs) != encoder_size:
       raise ValueError("Encoder length must be equal to the one in bucket,"
@@ -304,7 +302,7 @@ data:                                                                   bukets:
 ]                                                                           ]
 
     """
-    encoder_size, decoder_size = buckets[bucket_id]
+    encoder_size, decoder_size = self.buckets[bucket_id]
     # encoder_size, decoder_size = self.buckets[0]
     encoder_inputs, decoder_inputs = [], []
 
