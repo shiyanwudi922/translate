@@ -1,9 +1,12 @@
-问题描述：tensorflow旧版本tutorial中的seq2seq部分的机器翻译模型在1.2版本以后会出现bug。而在更新版本的tutorial中，直接放弃了旧版本的代码（主要是因为旧版本代码使用static_rnn+buckets技术，执行效率比较低；新版本代码使用了新的rnn接口，提高了效率）（估计也是Google的人也看不上原来的代码了，都懒得再去改），提供了新的nmt代码，但是这样会导致已经使用旧版本代码的用户的更新代价比较高。
+问题描述：tensorflow旧版本tutorial中的seq2seq部分的机器翻译模型在1.2版本以后会出现bug。而在更新版本的tutorial中，直接放弃了旧版本的代码（主要是因为旧版本代码使用static_rnn+buckets技术，执行效率比较低；新版本代码使用了新的dynamic_rnn接口，提高了效率）（应该是Google的人也看不上原来的代码了，所以懒得再去改），提供了新的nmt代码，但是这样会导致已经在业务中使用了旧版本代码的用户的更新代价比较高。
+
 分析：主要还是由于embedding_attention_seq2seq这个接口在调用时对encoder和decoder共享参数，需要进行deepcopy，而源代码中这一部分实现有误造成的。
+
 目的：这里对旧版本代码做了一些修改，使其仍然可以运行，算是一种折衷的办法
 主要参考：https://github.com/tensorflow/tensorflow/issues/8191#issuecomment-311003867 这里提出的三种方法
 
-一、在调用embedding_attention_seq2seq之前显示copy一次
+一、在调用embedding_attention_seq2seq之前显式copy一次，参考：
+
 Miopas commented on Jun 23
 I also met the error caused by copy.deepcopy(cell) in embedding_attention_seq2seq() when running self_test() in the translate model in tutorial.
 I tried to change the codes in seq2seq_f() in Seq2SeqModel as follows:
@@ -23,7 +26,8 @@ I tried to change the codes in seq2seq_f() in Seq2SeqModel as follows:
 Then there is no error now.
 BUT as a rookie I don't know whether the codes here work as before and it seems the changes make the model run slower.
 
-二、修改源码，在embedding_attention_seq2seq中分别构造encoder cell和decoder cell，而在调用的时候使用相同的cell参数
+二、修改源码，在embedding_attention_seq2seq中分别构造encoder cell和decoder cell，而在调用的时候使用相同的cell参数， 参考：
+
 fabiofumarola commented on Jun 26
 Hi guys, I don't know if you're still interested on it, but I found that the problem is related to the operation of copying the cell passed as params to the embedding_attention_seq2seq function. This is because the same cell definition is used both for encoder and decoder. I think the tutorial is deprecated since it uses a seq2seq model with bucketing in contrast to a dynamic seq2seq. But, I'm pasting a modified function that works. The function is updated in the file tensorflow/contrib/legacy_seq2seq/python/ops/seq2seq.py.
 
@@ -161,7 +165,8 @@ def embedding_attention_seq2seq(encoder_inputs,
           structure=encoder_state, flat_sequence=state_list)
     return outputs_and_state[:outputs_len], state
 
-三、把网络定义的语句写在embedding_attention_seq2seq调用之前
+三、把网络定义的语句写在embedding_attention_seq2seq调用之前， 参考：
+
 huxuanlai commented on Jul 31
 Move the code on cell definition into seq2seq_f:
 
