@@ -1,6 +1,7 @@
 先展示翻译结果：
 Reading model parameters from /Users/baihai/projects/translate/train_dir/translate.ckpt-5200
 > The observatory is named after the Norwegian and Germanic god Odin.
+
 Le projet est le la _UNK est le la _UNK et le la _UNK .
 
 
