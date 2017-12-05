@@ -12,7 +12,7 @@ Reading model parameters from train_dir/translate.ckpt-5200
 
 **问题描述**
 
-tensorflow旧版本tutorial中的seq2seq部分的机器翻译模型在1.2版本以后会出现bug。而在更新版本的tutorial中，直接放弃了旧版本的代码（主要是因为旧版本代码使用static_rnn+buckets技术，执行效率比较低；新版本代码使用了新的dynamic_rnn接口，提高了效率，更多内容请参考https://github.com/tensorflow/nmt）（应该是Google的人也看不上原来的代码了，所以懒得再去改），提供了新的nmt代码，但是这样会导致已经在业务中使用了旧版本代码的用户的更新代价比较高。
+tensorflow旧版本tutorial中的seq2seq部分的机器翻译模型在1.2版本以后会出现bug。而在更新版本的tutorial中，直接放弃了旧版本的代码（主要是因为旧版本代码使用static_rnn+buckets技术，执行效率比较低；新版本代码使用了新的dynamic_rnn接口，提高了效率，更多内容请参考https://github.com/tensorflow/nmt) （应该是Google的人也看不上原来的代码了，所以懒得再去改），提供了新的nmt代码，但是这样会导致已经在业务中使用了旧版本代码的用户的更新代价比较高。
 
 **分析**
 
