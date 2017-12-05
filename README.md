@@ -1,17 +1,26 @@
-先展示翻译结果：
-Reading model parameters from /Users/baihai/projects/translate/train_dir/translate.ckpt-5200
->The observatory is named after the Norwegian and Germanic god Odin.
+### End-to-End Seq2Seq based Translation Model
 
->Le projet est le la _UNK est le la _UNK et le la _UNK .
+先展示翻译结果：
+
+```
+Reading model parameters from train_dir/translate.ckpt-5200
+> The observatory is named after the Norwegian and Germanic god Odin.
+> Le projet est le la _UNK est le la _UNK et le la _UNK .
+```
 
 结果暂时还不能满足要求，但是这里目前只是先保证代码运行的正确性，想要获得更好的结果，只需要继续训练更多次即可。（如果需要符合业务的需求，还需要增加更多的校正和规则）。
 
+**问题描述**
 
-问题描述：tensorflow旧版本tutorial中的seq2seq部分的机器翻译模型在1.2版本以后会出现bug。而在更新版本的tutorial中，直接放弃了旧版本的代码（主要是因为旧版本代码使用static_rnn+buckets技术，执行效率比较低；新版本代码使用了新的dynamic_rnn接口，提高了效率，更多内容请参考https://github.com/tensorflow/nmt）（应该是Google的人也看不上原来的代码了，所以懒得再去改），提供了新的nmt代码，但是这样会导致已经在业务中使用了旧版本代码的用户的更新代价比较高。
+tensorflow旧版本tutorial中的seq2seq部分的机器翻译模型在1.2版本以后会出现bug。而在更新版本的tutorial中，直接放弃了旧版本的代码（主要是因为旧版本代码使用static_rnn+buckets技术，执行效率比较低；新版本代码使用了新的dynamic_rnn接口，提高了效率，更多内容请参考https://github.com/tensorflow/nmt）（应该是Google的人也看不上原来的代码了，所以懒得再去改），提供了新的nmt代码，但是这样会导致已经在业务中使用了旧版本代码的用户的更新代价比较高。
 
-分析：主要还是由于embedding_attention_seq2seq这个接口在调用时对encoder和decoder共享参数，需要进行deepcopy，而源代码中这一部分实现有误造成的。
+**分析**
 
-目的：这里对旧版本代码做了一些修改，使其仍然可以运行，算是一种折衷的办法
+主要还是由于embedding_attention_seq2seq这个接口在调用时对encoder和decoder共享参数，需要进行deepcopy，而源代码中这一部分实现有误造成的。
+
+**目的**
+
+这里对旧版本代码做了一些修改，使其仍然可以运行，算是一种折衷的办法
 主要参考：https://github.com/tensorflow/tensorflow/issues/8191#issuecomment-311003867 这里提出的三种方法
 
 一、在调用embedding_attention_seq2seq之前显式copy一次，参考：
@@ -104,28 +113,28 @@ def embedding_attention_seq2seq(encoder_inputs,
       scope or "embedding_attention_seq2seq", dtype=dtype) as scope:
     dtype = scope.dtype
     # Encoder.
-
+    
     encoder_cell = enc_cell
-
+    
     encoder_cell = core_rnn_cell.EmbeddingWrapper(
         encoder_cell,
         embedding_classes=num_encoder_symbols,
         embedding_size=embedding_size)
     encoder_outputs, encoder_state = rnn.static_rnn(
         encoder_cell, encoder_inputs, dtype=dtype)
-
+    
     # First calculate a concatenation of encoder outputs to put attention on.
     top_states = [
         array_ops.reshape(e, [-1, 1, encoder_cell.output_size]) for e in encoder_outputs
     ]
     attention_states = array_ops.concat(top_states, 1)
-
+    
     # Decoder.
     output_size = None
     if output_projection is None:
       dec_cell = core_rnn_cell.OutputProjectionWrapper(dec_cell, num_decoder_symbols)
       output_size = num_decoder_symbols
-
+    
     if isinstance(feed_previous, bool):
       return embedding_attention_decoder(
           decoder_inputs,
@@ -139,7 +148,7 @@ def embedding_attention_seq2seq(encoder_inputs,
           output_projection=output_projection,
           feed_previous=feed_previous,
           initial_state_attention=initial_state_attention)
-
+    
     # If feed_previous is a Tensor, we construct 2 graphs and use cond.
     def decoder(feed_previous_bool):
       reuse = None if feed_previous_bool else True
@@ -162,7 +171,7 @@ def embedding_attention_seq2seq(encoder_inputs,
         if nest.is_sequence(state):
           state_list = nest.flatten(state)
         return outputs + state_list
-
+    
     outputs_and_state = control_flow_ops.cond(feed_previous,
                                               lambda: decoder(True),
                                               lambda: decoder(False))
@@ -189,6 +198,6 @@ def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
       if num_layers > 1:
         cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
       return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
-	  ...
-	  )
+      ...
+      )
 Then "python translate.py --data_dir data/ --train_dir checkpoint/ --size=256 --num_layers=2 --steps_per_checkpoint=50" can work.
